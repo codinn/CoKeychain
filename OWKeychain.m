@@ -48,19 +48,6 @@
     return self;
 }
 
-- (BOOL)deleteFromKeychain
-{
-    
-    NSDictionary *queryDictionary = @{
-                                      (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
-                                      (__bridge id)kSecValueRef   : (__bridge id)self.secRef
-                                      };
-    
-    SecItemDelete((__bridge CFDictionaryRef)(queryDictionary));
-    
-    return YES;
-}
-
 #pragma mark Sec Readonly Attributes / Return Values
 
 - (NSString *)secAccessGroup
@@ -101,7 +88,7 @@
     return self.resultDictionary.count > 0;
 }
 
-+ (NSDictionary *)fetchResultWithQueryDictionary:(NSDictionary *)queryDictionary
++ (NSDictionary *)fetchResultWithQueryDictionary:(NSDictionary *)queryDictionary error:(NSError *__autoreleasing *)error
 {
     NSMutableDictionary *query = [queryDictionary mutableCopy];
     query[(__bridge id)kSecReturnAttributes] = @YES;
@@ -110,14 +97,15 @@
     
     CFTypeRef result = NULL;
     OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)(query), &result);
-    if (status != errSecSuccess) {
-        return nil;
+    
+    if (status != errSecSuccess && error != NULL) {
+        *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:nil];
     }
     
     return CFBridgingRelease(result);
 }
 
-+ (NSDictionary *)addWithQueryDictionary:(NSDictionary *)queryDictionary
++ (NSDictionary *)addItemAndFetchResultWithQueryDictionary:(NSDictionary *)queryDictionary error:(NSError *__autoreleasing *)error
 {
     NSMutableDictionary *query = [queryDictionary mutableCopy];
     query[(__bridge id)kSecReturnAttributes] = @YES;
@@ -126,8 +114,9 @@
     
     CFTypeRef result = NULL;
     OSStatus status = SecItemAdd((__bridge CFDictionaryRef)(query), &result);
-    if (status != errSecSuccess) {
-        return nil;
+    
+    if (status != errSecSuccess && error != NULL) {
+        *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:nil];
     }
     
     return CFBridgingRelease(result);
@@ -135,10 +124,11 @@
 
 #pragma mark Commit / Reset Changes / Delete
 
-- (void)commit:(NSError **)error
+- (NSError *)commit
 {
+    NSError *error = nil;
     if (! self.hasUncommittedChanges) {
-        return;
+        return error;
     }
     
     NSDictionary *queryDictionary = @{
@@ -149,21 +139,17 @@
     OSStatus status = SecItemUpdate((__bridge CFDictionaryRef)queryDictionary,
                                (__bridge CFDictionaryRef)self.updateDictionary);
     
-    if (status != errSecSuccess && error != NULL) {
-        self.resultDictionary = nil;
-        *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:nil];
+    if (status != errSecSuccess) {
+        error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:nil];
     }
-
     
+    // todo: refetch
     [self.updateDictionary removeAllObjects];
+    return error;
 }
 
 - (void)reset
 {
-    if (! self.hasUncommittedChanges) {
-        return;
-    }
-    
     [self.updateDictionary removeAllObjects];
 }
 
@@ -172,11 +158,22 @@
     return self.updateDictionary.count > 0;
 }
 
-#pragma mark NSObject
-
-- (void)dealloc
+- (NSError *)delete
 {
+    NSError *error = nil;
+    NSDictionary *queryDictionary = @{
+                                      (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
+                                      (__bridge id)kSecValueRef   : (__bridge id)self.secRef
+                                      };
     
+    OSStatus status = SecItemDelete((__bridge CFDictionaryRef)(queryDictionary));
+    
+    if (status != errSecSuccess && error != NULL) {
+        self.resultDictionary = nil;
+        error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:nil];
+    }
+    
+    return error;
 }
 
 @end
@@ -368,7 +365,7 @@
                                       (__bridge id)kSecAttrAccessGroup : accessGroup,
                                       };
     
-    NSDictionary * resultDicionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:queryDictionary];
+    NSDictionary * resultDicionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:queryDictionary error:nil];
     
     if (!resultDicionary) {
         return nil;
@@ -392,7 +389,7 @@
                                       (__bridge id)kSecAttrAccessGroup : accessGroup,
                                       };
     
-    NSDictionary * resultDicionary = [OWGenericKeychainItem addWithQueryDictionary:queryDictionary];
+    NSDictionary * resultDicionary = [OWGenericKeychainItem addItemAndFetchResultWithQueryDictionary:queryDictionary error:nil];
     
     if (!resultDicionary) {
         return nil;
@@ -455,7 +452,7 @@
                                      (__bridge id)kSecAttrAuthenticationType : (__bridge id)(authenticationType),
                                      };
     
-    NSDictionary * resultDicionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:queryDictionary];
+    NSDictionary * resultDicionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:queryDictionary error:nil];
     
     if (!resultDicionary) {
         return nil;
@@ -489,7 +486,7 @@
                                       (__bridge id)kSecAttrAuthenticationType : (__bridge id)(authenticationType),
                                       };
     
-    NSDictionary * resultDicionary = [OWInternetKeychainItem addWithQueryDictionary:queryDictionary];
+    NSDictionary * resultDicionary = [OWInternetKeychainItem addItemAndFetchResultWithQueryDictionary:queryDictionary error:nil];
     
     if (!resultDicionary) {
         return nil;

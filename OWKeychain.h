@@ -38,14 +38,14 @@
 @property (readwrite) CFTypeRef secAccessible   __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
 
 // make changes, then save to keychain
-- (void)commit:(NSError **)error;
+- (NSError *)commit;
 
 // make changes, then save to keychain
 - (void)reset;
 
 @property (readonly) BOOL hasUncommittedChanges;
 
-- (BOOL)deleteFromKeychain;
+- (NSError *)delete;
 
 @end
 
