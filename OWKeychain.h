@@ -30,44 +30,52 @@
 
 @property (readonly) BOOL isExist;
 
-@property (readonly) CFTypeRef secClass;
-@property (readonly) CFTypeRef secAccessible   __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
-@property (readonly) NSString  *secAccessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
-@property (readonly) CFTypeRef secRef;
-@property (readonly) NSData    *secPersistentRef;
+@property (readonly)  CFTypeRef secClass;
+@property (readonly)  NSString  *secAccessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
+@property (readonly)  CFTypeRef secRef;
+@property (readonly)  NSData    *secPersistentRef;
+
+@property (readwrite) CFTypeRef secAccessible   __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
+
+// make changes, then save to keychain
+- (void)commit:(NSError **)error;
+
+// make changes, then save to keychain
+- (void)reset;
+
+@property (readonly) BOOL hasUncommittedChanges;
 
 @end
 
 @interface OWBasePasswordKeychainItem : OWKeychainItem
 
-- (void)setPassword:(NSString *)password error:(NSError **)error;
-- (void)setPasswordData:(NSData *)data error:(NSError **)error;
-
-@property (readonly) NSString  *secService;
 @property (readonly) NSString  *secAccount;
-@property (readonly) NSString  *secDescription;
-@property (readonly) NSString  *secComment;
-@property (readonly) NSNumber  *secCreator;
 @property (readonly) NSDate    *secCreationDate;
 @property (readonly) NSDate    *secModificationDate;
-@property (readonly) NSNumber  *secType;
-@property (readonly) NSString  *secLabel;
-@property (readonly) BOOL      secInvisible;
-@property (readonly) BOOL      secNegative;
+
+@property (readwrite) NSString *secDescription;
+@property (readwrite) NSString *secComment;
+@property (readwrite) NSNumber *secCreator;
+@property (readwrite) NSNumber *secType;
+@property (readwrite) NSString *secLabel;
+@property (readwrite) BOOL     secIsInvisible;
+@property (readwrite) BOOL     secIsNegative;
+
+@property (readwrite) NSString *password;
+@property (readwrite) NSData   *passwordData;
 
 @end
 
 @interface OWGenericKeychainItem : OWBasePasswordKeychainItem
 
-@property (readonly) NSString  *secGeneric;
+@property (readonly) NSString  *secService;
+@property (readwrite) NSString *secGeneric;
 
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account generic:(NSString *)generic;
++ (instancetype)genericKeychainItemWithService:(NSString *)service account:(NSString *)account;
++ (instancetype)genericKeychainItemWithService:(NSString *)service account:(NSString *)account accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
 
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account generic:(NSString *)generic description:(NSString *)description comment:(NSString *)comment;
-
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account generic:(NSString *)generic description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative;
-
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account generic:(NSString *)generic description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative accessGroup:(NSString *)accessGroup accessible:(CFTypeRef) accessible __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
++ (instancetype)addGenericKeychainItemWithService:(NSString *)service account:(NSString *)account;
++ (instancetype)addGenericKeychainItemWithService:(NSString *)service account:(NSString *)account accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
 
 @end
 
@@ -76,14 +84,14 @@
 @property (readonly) CFTypeRef  secProtocol;
 @property (readonly) NSUInteger secPort;
 @property (readonly) NSString   *secPath;
+@property (readonly) CFTypeRef  authenticationType;
+@property (readonly) NSString   *secSecurityDomain;
 
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account server:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path;
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port;
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
 
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account server:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path description:(NSString *)description comment:(NSString *)comment;
-
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account server:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative;
-
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account server:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative accessGroup:(NSString *)accessGroup accessible:(CFTypeRef) accessible __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port;
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
 @end
-
-

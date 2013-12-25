@@ -31,48 +31,77 @@
 @property NSMutableDictionary   *attributes;
 @property NSDictionary          *returnAttributes;
 
+@property (readonly) NSMutableDictionary *queryDictionary;
+@property (readonly) NSMutableDictionary *updateDictionary;
+@property NSDictionary                   *resultDictionary;
+
 @end
 
 @implementation OWKeychainItem
 
-#pragma mark Accessors
-
-- (CFTypeRef)accessible
+- (instancetype)init
 {
-    return (__bridge CFTypeRef)(self.returnAttributes[(__bridge id)kSecAttrAccessible]);
+    self = [super init];
+    if (self) {
+        // limit query to match one result
+        _queryDictionary = [@{
+                              (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne}
+                            mutableCopy];
+        
+        _updateDictionary = [@{} mutableCopy];
+    }
+    return self;
 }
 
-- (NSString *)accessGroup
+#pragma mark Sec Readonly Attributes / Return Values
+
+- (NSString *)secAccessGroup
 {
-    return self.returnAttributes[(__bridge id)kSecAttrAccessGroup];
+    NSString *accessGroup = self.queryDictionary[(__bridge id)kSecAttrAccessGroup];
+    
+    if (!accessGroup) {
+        accessGroup = self.resultDictionary[(__bridge id)kSecAttrAccessGroup];
+    }
+    
+    return accessGroup;
 }
+
+- (CFTypeRef)secRef
+{
+    return (__bridge CFTypeRef)(self.resultDictionary[(__bridge id)kSecValueRef]);
+}
+- (NSData *)secPersistentRef
+{
+    return self.resultDictionary[(__bridge id)kSecValuePersistentRef];
+}
+
+#pragma mark Sec Readwrite Attributes / Return Values
+
+- (CFTypeRef)secAccessible
+{
+    CFTypeRef accessible = (__bridge CFTypeRef)(self.updateDictionary[(__bridge id)kSecAttrAccessible]);
+    
+    if (!accessible) {
+        accessible = (__bridge CFTypeRef)(self.resultDictionary[(__bridge id)kSecAttrAccessible]);
+    }
+    
+    return accessible;
+}
+- (void)setSecAccessible:(CFTypeRef)accessible
+{
+    self.updateDictionary[(__bridge id)kSecAttrAccessible] = (__bridge id)accessible;
+}
+
+#pragma mark Item Existence
 
 - (BOOL)isExist
 {
-    return self.returnAttributes!=nil;
+    return self.resultDictionary.count > 0;
 }
 
-- (CFTypeRef)returnRef
+- (BOOL)fetchResultFromKeychain
 {
-    return (__bridge CFTypeRef)(self.returnAttributes[(__bridge id)kSecValueRef]);
-}
-- (NSData *)returnPersistentRef
-{
-    return self.returnAttributes[(__bridge id)kSecValuePersistentRef];
-}
-
-#pragma mark NSObject
-
-- (void)dealloc
-{
-    
-}
-
-#pragma mark Privates
-
-- (BOOL)checkExistence
-{
-    NSMutableDictionary *query = [self.attributes copy];
+    NSMutableDictionary *query = [self.queryDictionary copy];
     query[(__bridge id)kSecReturnAttributes] = @YES;
     query[(__bridge id)kSecReturnRef] = @YES;
     query[(__bridge id)kSecReturnPersistentRef] = @YES;
@@ -83,99 +112,29 @@
         return NO;
     }
     
-    self.returnAttributes = CFBridgingRelease(result);
+    self.resultDictionary = CFBridgingRelease(result);
     return YES;
 }
 
-@end
+#pragma mark Apply / Revert Changes
 
-#pragma mark - OWBasePasswordKeychainItem
-
-@implementation OWBasePasswordKeychainItem
-
-- (instancetype)initWithClass:(CFTypeRef)secClass service:(NSString *)service account:(NSString *)account
+- (void)commit:(NSError **)error
 {
-    self = [super init];
-    if (self) {
-        self.attributes = [@{
-                        (__bridge id)kSecAttrService  : service,
-                        (__bridge id)kSecAttrAccount  : account,
-                        } mutableCopy];
+    if (! self.hasUncommittedChanges) {
+        return;
     }
-    return self;
-}
-- (instancetype)initWithClass:(CFTypeRef)secClass service:(NSString *)service account:(NSString *)account description:(NSString *)description comment:(NSString *)comment
-{
-    self = [super init];
-    if (self) {
-        self.attributes = [@{
-                        (__bridge id)kSecAttrService      : service,
-                        (__bridge id)kSecAttrAccount      : account,
-                        (__bridge id)kSecAttrDescription  : description,
-                        (__bridge id)kSecAttrComment      : comment,
-                        } mutableCopy];
-    }
-    return self;
-}
-- (instancetype)initWithClass:(CFTypeRef)secClass service:(NSString *)service account:(NSString *)account description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative
-{
-    self = [super init];
-    if (self) {
-        self.attributes = [@{
-                        (__bridge id)kSecAttrService      : service,
-                        (__bridge id)kSecAttrAccount      : account,
-                        (__bridge id)kSecAttrDescription  : description,
-                        (__bridge id)kSecAttrComment      : comment,
-                        (__bridge id)kSecAttrCreator      : creator,
-                        (__bridge id)kSecAttrType         : type,
-                        (__bridge id)kSecAttrLabel        : label,
-                        (__bridge id)kSecAttrIsInvisible  : @(isInvisible),
-                        (__bridge id)kSecAttrIsNegative   : @(isNegative),
-                        } mutableCopy];
-    }
-    return self;
-}
-- (instancetype)initWithClass:(CFTypeRef)secClass service:(NSString *)service account:(NSString *)account description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative accessGroup:(NSString *)accessGroup accessible:(CFTypeRef) accessible
-{
-    self = [super init];
-    if (self) {
-        self.attributes = [@{
-                        (__bridge id)kSecAttrService      : service,
-                        (__bridge id)kSecAttrAccount      : account,
-                        (__bridge id)kSecAttrDescription  : description,
-                        (__bridge id)kSecAttrComment      : comment,
-                        (__bridge id)kSecAttrCreator      : creator,
-                        (__bridge id)kSecAttrType         : type,
-                        (__bridge id)kSecAttrLabel        : label,
-                        (__bridge id)kSecAttrIsInvisible  : @(isInvisible),
-                        (__bridge id)kSecAttrIsNegative   : @(isNegative),
-                        (__bridge id)kSecAttrAccessGroup  : accessGroup,
-                        (__bridge id)kSecAttrAccessible   : (__bridge id)accessible
-                        } mutableCopy];
-    }
-    return self;
-}
-
-- (void)setPassword:(NSString *)password error:(NSError **)error
-{
-    return [self setPasswordData:[password dataUsingEncoding:NSUTF8StringEncoding] error:error];
-}
-
-- (void)setPasswordData:(NSData *)data error:(NSError **)error
-{
+    
     OSStatus status;
     
     if (self.isExist) {
-        NSMutableDictionary *searchDictionary = [self.attributes copy];
-        NSDictionary *updateDictionary = @{
-                                           (__bridge id)kSecValueData : data
-                                           };
-        
-        status = SecItemUpdate((__bridge CFDictionaryRef)searchDictionary,
-                               (__bridge CFDictionaryRef)updateDictionary);
+        status = SecItemUpdate((__bridge CFDictionaryRef)self.queryDictionary,
+                               (__bridge CFDictionaryRef)self.updateDictionary);
     } else {
-        NSMutableDictionary *dictionary = [self.attributes copy];
-        dictionary[(__bridge id)kSecValueData] = data;
+        NSMutableDictionary *dictionary = [self.queryDictionary copy];
+        
+        // merge from updateDictionary
+        [dictionary addEntriesFromDictionary:self.updateDictionary];
+        
         dictionary[(__bridge id)kSecReturnAttributes] = @YES;
         dictionary[(__bridge id)kSecReturnRef] = @YES;
         dictionary[(__bridge id)kSecReturnPersistentRef] = @YES;
@@ -184,86 +143,225 @@
         
         status = SecItemAdd((__bridge CFDictionaryRef)dictionary, &result);
         
-        self.returnAttributes = CFBridgingRelease(result);
+        self.resultDictionary = CFBridgingRelease(result);
     }
     
     if (status != errSecSuccess && error != NULL) {
-        self.returnAttributes = nil;
+        self.resultDictionary = nil;
         *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:nil];
     }
+
+    
+    [self.updateDictionary removeAllObjects];
 }
 
-//+ (CFTypeRef *)fetch:(NSDictionary *)query error:(NSError **)error
-//{
-//    CFTypeRef result = NULL;
-//    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)(query), &result);
-//    if (status != errSecSuccess && error != NULL) {
-//        *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:returnStatus userInfo:nil];
-//    }
-//}
-//
-//- (NSArray *)fetchAll:(NSDictionary *)query (NSError **)error {
-//    OSStatus status = SSKeychainErrorBadArguments;
-//    NSMutableDictionary *query = [self query];
-//    [query setObject:@YES forKey:(__bridge id)kSecReturnAttributes];
-//    [query setObject:(__bridge id)kSecMatchLimitAll forKey:(__bridge id)kSecMatchLimit];
-//    
-//    CFTypeRef result = NULL;
-//    status = SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
-//    if (status != errSecSuccess && error != NULL) {
-//        *error = [[self class] errorWithCode:status];
-//        return nil;
-//    }
-//    
-//    return (__bridge_transfer NSArray *)result;
-//}
-
-#pragma mark - Accessors
-
-- (NSString *)secService
+- (void)reset
 {
-    return self.returnAttributes[(__bridge id)kSecAttrService];
+    if (! self.hasUncommittedChanges) {
+        return;
+    }
+    
+    [self.updateDictionary removeAllObjects];
 }
+
+- (BOOL)hasUncommittedChanges
+{
+    return self.updateDictionary.count > 0;
+}
+
+#pragma mark NSObject
+
+- (void)dealloc
+{
+    
+}
+
+@end
+
+#pragma mark - OWBasePasswordKeychainItem
+
+@implementation OWBasePasswordKeychainItem
+
+- (instancetype)initWithClass:(CFTypeRef)secClass account:(NSString *)account
+{
+    self = [super init];
+    if (self) {
+        self.queryDictionary[(__bridge id)kSecClass] = (__bridge id)secClass;
+        self.queryDictionary[(__bridge id)kSecAttrAccount] = account;
+    }
+    return self;
+}
+- (instancetype)initWithClass:(CFTypeRef)secClass account:(NSString *)account accessGroup:(NSString *)accessGroup
+{
+    self = [super init];
+    if (self) {
+        self.queryDictionary[(__bridge id)kSecClass] = (__bridge id)secClass;
+        self.queryDictionary[(__bridge id)kSecAttrAccount] = account;
+        self.queryDictionary[(__bridge id)kSecAttrAccessGroup] = accessGroup;
+    }
+    return self;
+}
+
+#pragma mark Sec Readonly Attributes / Return Values
+
 - (NSString *)secAccount
 {
-    return self.returnAttributes[(__bridge id)kSecAttrAccount];
-}
-- (NSString *)secDescription
-{
-    return self.returnAttributes[(__bridge id)kSecAttrDescription];
-}
-- (NSString *)secComment
-{
-    return self.returnAttributes[(__bridge id)kSecAttrComment];
-}
-- (NSString *)secCreator
-{
-    return self.returnAttributes[(__bridge id)kSecAttrCreator];
+    NSString *account = (self.queryDictionary[(__bridge id)kSecAttrAccount]);
+    
+    if (!account) {
+        account = (self.resultDictionary[(__bridge id)kSecAttrAccount]);
+    }
+    
+    return account;
 }
 
 - (NSDate *)secCreationDate
 {
-    return self.returnAttributes[(__bridge id)kSecAttrCreationDate];
+    return self.resultDictionary[(__bridge id)kSecAttrCreationDate];
 }
+
 - (NSDate *)secModificationDate
 {
-    return self.returnAttributes[(__bridge id)kSecAttrModificationDate];
+    return self.resultDictionary[(__bridge id)kSecAttrModificationDate];
 }
-- (NSString *)secType
+
+#pragma mark Sec Readwrite Attributes / Return Values
+
+- (NSString *)secDescription
 {
-    return self.returnAttributes[(__bridge id)kSecAttrType];
+    NSString * description = self.updateDictionary[(__bridge id)kSecAttrDescription];
+    
+    if (!description) {
+        description = self.resultDictionary[(__bridge id)kSecAttrDescription];
+    }
+    
+    return description;
 }
+- (void)setSecDescription:(NSString *)description
+{
+    self.updateDictionary[(__bridge id)kSecAttrDescription] = description;
+}
+
+- (NSString *)secComment
+{
+    NSString * comment = self.updateDictionary[(__bridge id)kSecAttrComment];
+    
+    if (!comment) {
+        comment = self.resultDictionary[(__bridge id)kSecAttrComment];
+    }
+    
+    return comment;
+}
+- (void)setSecComment:(NSString *)comment
+{
+    self.updateDictionary[(__bridge id)kSecAttrComment] = comment;
+}
+
+- (NSNumber *)secCreator
+{
+    NSNumber * creator = self.updateDictionary[(__bridge id)kSecAttrCreator];
+    
+    if (!creator) {
+        creator = self.resultDictionary[(__bridge id)kSecAttrCreator];
+    }
+    
+    return creator;
+}
+- (void)setSecCreator:(NSNumber *)creator
+{
+    self.updateDictionary[(__bridge id)kSecAttrCreator] = creator;
+}
+
+- (NSNumber *)secType
+{
+    NSNumber * type = self.updateDictionary[(__bridge id)kSecAttrType];
+    
+    if (!type) {
+        type = self.resultDictionary[(__bridge id)kSecAttrType];
+    }
+    
+    return type;
+}
+- (void)setSecType:(NSNumber *)type
+{
+    self.updateDictionary[(__bridge id)kSecAttrType] = type;
+}
+
 - (NSString *)secLabel
 {
-    return self.returnAttributes[(__bridge id)kSecAttrLabel];
+    NSString * label = self.updateDictionary[(__bridge id)kSecAttrLabel];
+    
+    if (!label) {
+        label = self.resultDictionary[(__bridge id)kSecAttrLabel];
+    }
+    
+    return label;
 }
-- (BOOL)secInvisible
+- (void)setSecLabel:(NSString *)label
 {
-    return [self.returnAttributes[(__bridge id)kSecAttrIsInvisible] boolValue];
+    self.updateDictionary[(__bridge id)kSecAttrLabel] = label;
 }
-- (BOOL)secNegative
+
+- (BOOL)secIsInvisible
 {
-    return [self.returnAttributes[(__bridge id)kSecAttrIsNegative] boolValue];
+    NSNumber * isInvisible = self.updateDictionary[(__bridge id)kSecAttrIsInvisible];
+    
+    if (!isInvisible) {
+        isInvisible = self.resultDictionary[(__bridge id)kSecAttrIsInvisible];
+    }
+    
+    return [isInvisible boolValue];
+}
+- (void)setSecIsInvisible:(BOOL)isInvisible
+{
+    self.updateDictionary[(__bridge id)kSecAttrIsInvisible] = @(isInvisible);
+}
+
+- (BOOL)secIsNegative
+{
+    NSNumber *isNegative = self.updateDictionary[(__bridge id)kSecAttrIsNegative];
+    
+    if (!isNegative) {
+        isNegative = self.resultDictionary[(__bridge id)kSecAttrIsNegative];
+    }
+    
+    return [isNegative boolValue];
+}
+- (void)setSecIsNegative:(BOOL)isNegative
+{
+    self.updateDictionary[(__bridge id)kSecAttrIsNegative] = @(isNegative);
+}
+
+// For security, set password will be committed immediately
+- (NSString *)password
+{
+    if ([self.passwordData length]) {
+        return [[NSString alloc] initWithData:self.passwordData encoding:NSUTF8StringEncoding];
+    }
+    return nil;
+}
+- (void)setPassword:(NSString *)password
+{
+        self.passwordData = [password dataUsingEncoding:NSUTF8StringEncoding];
+}
+
+- (NSData *)passwordData
+{
+    NSMutableDictionary *query = [self.queryDictionary copy];
+    query[(__bridge id)kSecReturnData] = @YES;
+    
+    CFTypeRef result = NULL;
+    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)(query), &result);
+    if (status != errSecSuccess) {
+        return nil;
+    }
+    
+    NSData *passwordData = (__bridge_transfer NSData *)result;
+    return passwordData;
+}
+- (void)setPasswordData:(NSData *)data
+{
+    self.updateDictionary[(__bridge id)kSecValueData] = data;
 }
 
 @end
@@ -276,47 +374,68 @@
 
 @implementation OWGenericKeychainItem
 
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account generic:(NSString *)generic
++ (instancetype)genericKeychainItemWithService:(NSString *)service account:(NSString *)account
 {
-    self = [super initWithClass:kSecClassGenericPassword service:service account:account];
+    return [[OWGenericKeychainItem alloc] initWithService:service account:account];
+}
++ (instancetype)genericKeychainItemWithService:(NSString *)service account:(NSString *)account accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0)
+{
+    return [[OWGenericKeychainItem alloc] initWithService:service account:account accessGroup:accessGroup];
+}
+
+- (instancetype)initWithService:(NSString *)service account:(NSString *)account
+{
+    self = [super initWithClass:kSecClassGenericPassword account:account];
     if (self) {
-        [self finishInitWithGeneric:generic];
+        [self finishInitWithService:service];
     }
     return self;
 }
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account generic:(NSString *)generic description:(NSString *)description comment:(NSString *)comment
+- (instancetype)initWithService:(NSString *)service account:(NSString *)account accessGroup:(NSString *)accessGroup
 {
-    self = [super initWithClass:kSecClassGenericPassword service:service account:account description:description comment:comment];
+    self = [super initWithClass:kSecClassGenericPassword account:account accessGroup:accessGroup];
     if (self) {
-        [self finishInitWithGeneric:generic];
+        [self finishInitWithService:service];
     }
     return self;
 }
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account generic:(NSString *)generic description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative
+
+#pragma mark Sec Readonly Attributes / Return Values
+
+- (NSString *)secService
 {
-    self = [super initWithClass:kSecClassGenericPassword service:service account:account description:description comment:comment creator:creator type:type label:label invisible:isInvisible negative:isNegative];
-    if (self) {
-        [self finishInitWithGeneric:generic];
+    NSString *service = (self.queryDictionary[(__bridge id)kSecAttrService]);
+    
+    if (!service) {
+        service = (self.resultDictionary[(__bridge id)kSecAttrService]);
     }
-    return self;
+    
+    return service;
 }
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account generic:(NSString *)generic description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative accessGroup:(NSString *)accessGroup accessible:(CFTypeRef) accessible
+
+#pragma mark Sec Readwrite Attributes / Return Values
+
+- (NSString *)secGeneric
 {
-    self = [super initWithClass:kSecClassGenericPassword service:service account:account description:description comment:comment creator:creator type:type label:label invisible:isInvisible negative:isNegative accessGroup:accessGroup accessible:accessible];
-    if (self) {
-        [self finishInitWithGeneric:generic];
+    NSString * generic = self.updateDictionary[(__bridge id)kSecAttrGeneric];
+    
+    if (!generic) {
+        generic = self.resultDictionary[(__bridge id)kSecAttrGeneric];
     }
-    return self;
+    
+    return generic;
+}
+- (void)setSecGeneric:(NSString *)generic
+{
+    self.updateDictionary[(__bridge id)kSecAttrGeneric] = generic;
 }
 
 #pragma mark Private
 
-- (void)finishInitWithGeneric:(NSString *)generic
+- (void)finishInitWithService:(NSString *)service
 {
-    self.attributes[(__bridge id)kSecClass]       = (__bridge id)kSecClassGenericPassword;
-    self.attributes[(__bridge id)kSecAttrGeneric] = generic;
-    
-    [self checkExistence];
+    self.queryDictionary[(__bridge id)kSecAttrService] = service;
+    [self fetchResultFromKeychain];
 }
 @end
 
@@ -324,49 +443,92 @@
 
 @implementation OWInternetKeychainItem
 
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path
+
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port
 {
-    self = [super initWithClass:kSecClassInternetPassword service:service account:account];
-    if (self) {
-        [self finishInitWithProtocol:protocol port:port path:path];
-    }
-    return self;
+    return [[OWInternetKeychainItem alloc] initWithServer:(NSString *)server account:account protocol:protocol port:port path:nil authenticationType:NULL securityDomain:nil accessGroup:nil];
 }
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path description:(NSString *)description comment:(NSString *)comment
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
 {
-    self = [super initWithClass:kSecClassInternetPassword service:service account:account description:description comment:comment];
-    if (self) {
-        [self finishInitWithProtocol:protocol port:port path:path];
-    }
-    return self;
+    return [[OWInternetKeychainItem alloc] initWithServer:(NSString *)server account:account protocol:protocol port:port path:path authenticationType:authenticationType securityDomain:nil accessGroup:nil];
 }
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0)
 {
-    self = [super initWithClass:kSecClassInternetPassword service:service account:account description:description comment:comment creator:creator type:type label:label invisible:isInvisible negative:isNegative];
-    if (self) {
-        [self finishInitWithProtocol:protocol port:port path:path];
-    }
-    return self;
+    return [[OWInternetKeychainItem alloc] initWithServer:(NSString *)server account:account protocol:protocol port:port path:path authenticationType:authenticationType securityDomain:securityDomain accessGroup:accessGroup];
 }
-- (instancetype)initWithService:(NSString *)service account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path description:(NSString *)description comment:(NSString *)comment creator:(NSString *)creator type:(NSString *)type label:(NSString *)label invisible:(BOOL)isInvisible negative:(BOOL)isNegative accessGroup:(NSString *)accessGroup accessible:(CFTypeRef) accessible
+
+- (instancetype)initWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup
 {
-    self = [super initWithClass:kSecClassInternetPassword service:service account:account description:description comment:comment creator:creator type:type label:label invisible:isInvisible negative:isNegative accessGroup:accessGroup accessible:accessible];
+    self = [super initWithClass:kSecClassInternetPassword account:account accessGroup:accessGroup];
     if (self) {
-        [self finishInitWithProtocol:protocol port:port path:path];
+        self.queryDictionary[(__bridge id)kSecAttrServer]    = server;
+        self.queryDictionary[(__bridge id)kSecAttrProtocol]  = @(protocol);
+        self.queryDictionary[(__bridge id)kSecAttrPort]      = @(port);
+        self.queryDictionary[(__bridge id)kSecAttrPath]      = path;
+        self.queryDictionary[(__bridge id)kSecAttrAuthenticationType] = (__bridge id)(authenticationType);
+        self.queryDictionary[(__bridge id)kSecAttrSecurityDomain]     = securityDomain;
+        
+        [self fetchResultFromKeychain];
     }
     return self;
 }
 
-#pragma mark Private
+#pragma mark Sec Readonly Attributes / Return Values
 
-- (void)finishInitWithProtocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path
+- (CFTypeRef)secProtocol
 {
-    self.attributes[(__bridge id)kSecClass]         = (__bridge id)kSecClassInternetPassword;
-    self.attributes[(__bridge id)kSecAttrProtocol]  = (__bridge id)protocol;
-    self.attributes[(__bridge id)kSecAttrPort]      = @(port);
-    self.attributes[(__bridge id)kSecAttrPath]      = path;
+    CFTypeRef value = (__bridge CFTypeRef)((self.queryDictionary[(__bridge id)kSecAttrProtocol]));
     
-    [self checkExistence];
+    if (!value) {
+        value = (__bridge CFTypeRef)((self.resultDictionary[(__bridge id)kSecAttrProtocol]));
+    }
+    
+    return value;
 }
+
+- (NSUInteger)secPort
+{
+    NSNumber *value = self.queryDictionary[(__bridge id)kSecAttrPort];
+    
+    if (!value) {
+        value = self.resultDictionary[(__bridge id)kSecAttrPort];
+    }
+    
+    return [value integerValue];
+}
+
+- (NSString *)secPath
+{
+    NSString *value = self.queryDictionary[(__bridge id)kSecAttrPath];
+    
+    if (!value) {
+        value = self.resultDictionary[(__bridge id)kSecAttrService];
+    }
+    
+    return value;
+}
+
+- (CFTypeRef)secAuthenticationType
+{
+    CFTypeRef value = (__bridge CFTypeRef)(self.queryDictionary[(__bridge id)kSecAttrAuthenticationType]);
+    
+    if (!value) {
+        value = (__bridge CFTypeRef)(self.resultDictionary[(__bridge id)kSecAttrAuthenticationType]);
+    }
+    
+    return value;
+}
+
+- (NSString *)secSecurityDomain
+{
+    NSString *value = self.queryDictionary[(__bridge id)kSecAttrSecurityDomain];
+    
+    if (!value) {
+        value = self.resultDictionary[(__bridge id)kSecAttrSecurityDomain];
+    }
+    
+    return value;
+}
+
 @end
 
