@@ -89,11 +89,11 @@
 @property (readonly) CFTypeRef  authenticationType;
 @property (readonly) NSString   *secSecurityDomain;
 
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path;
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path;
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
++ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
 
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password;
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(SecProtocolType)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password;
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0);
 @end
