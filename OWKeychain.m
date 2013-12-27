@@ -55,9 +55,9 @@
     return self.resultDictionary[(__bridge id)kSecAttrAccessGroup];
 }
 
-- (CFTypeRef)secRef
+- (SecKeychainItemRef)secItemRef
 {
-    return (__bridge CFTypeRef)(self.resultDictionary[(__bridge id)kSecValueRef]);
+    return (__bridge SecKeychainItemRef)(self.resultDictionary[(__bridge id)kSecValueRef]);
 }
 - (NSData *)secPersistentRef
 {
@@ -133,7 +133,7 @@
     
     NSDictionary *queryDictionary = @{
                                       (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
-                                      (__bridge id)kSecValueRef   : (__bridge id)self.secRef
+                                      (__bridge id)kSecValueRef   : (__bridge id)self.secItemRef
                                       };
     
     OSStatus status = SecItemUpdate((__bridge CFDictionaryRef)queryDictionary,
@@ -163,7 +163,7 @@
     NSError *error = nil;
     NSDictionary *queryDictionary = @{
                                       (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
-                                      (__bridge id)kSecValueRef   : (__bridge id)self.secRef
+                                      (__bridge id)kSecValueRef   : (__bridge id)self.secItemRef
                                       };
     
     OSStatus status = SecItemDelete((__bridge CFDictionaryRef)(queryDictionary));
@@ -323,7 +323,7 @@
 {
     NSDictionary *queryDictionary = @{
                                       (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
-                                      (__bridge id)kSecValueRef   : (__bridge id)self.secRef,
+                                      (__bridge id)kSecValueRef   : (__bridge id)self.secItemRef,
                                       (__bridge id)kSecReturnData : @YES,
                                       };
     
@@ -355,17 +355,18 @@
 {
     return [OWGenericKeychainItem genericKeychainItemWithService:service account:account accessGroup:nil];
 }
-+ (instancetype)genericKeychainItemWithService:(NSString *)service account:(NSString *)account accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0)
++ (instancetype)genericKeychainItemWithService:(NSString *)service account:(NSString *)account accessGroup:(NSString *)accessGroup
 {
-    NSDictionary *queryDictionary = @{
-                                      (__bridge id)kSecMatchLimit      : (__bridge id)kSecMatchLimitOne,
-                                      (__bridge id)kSecClass           : (__bridge id)kSecClassGenericPassword,
-                                      (__bridge id)kSecAttrService     : service,
-                                      (__bridge id)kSecAttrAccount     : account,
-                                      (__bridge id)kSecAttrAccessGroup : accessGroup,
-                                      };
+    NSMutableDictionary *query = [@{
+                                    (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
+                                    (__bridge id)kSecClass      : (__bridge id)kSecClassGenericPassword,
+                                    } mutableCopy];
     
-    NSDictionary * resultDicionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:queryDictionary error:nil];
+    if (service)     query[ (__bridge id)kSecAttrService] = service;
+    if (account)     query[ (__bridge id)kSecAttrAccount] = account;
+    if (accessGroup) query[ (__bridge id)kSecAttrAccessGroup] = accessGroup;
+    
+    NSDictionary * resultDicionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDicionary) {
         return nil;
@@ -378,18 +379,19 @@
 {
     return [OWGenericKeychainItem addGenericKeychainItemWithService:service account:account password:password accessGroup:nil];
 }
-+ (instancetype)addGenericKeychainItemWithService:(NSString *)service account:(NSString *)account password:(NSString *)password accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0)
++ (instancetype)addGenericKeychainItemWithService:(NSString *)service account:(NSString *)account password:(NSString *)password accessGroup:(NSString *)accessGroup
 {
-    NSDictionary *queryDictionary = @{
-                                      (__bridge id)kSecMatchLimit      : (__bridge id)kSecMatchLimitOne,
-                                      (__bridge id)kSecClass           : (__bridge id)kSecClassGenericPassword,
-                                      (__bridge id)kSecAttrService     : service,
-                                      (__bridge id)kSecAttrAccount     : account,
-                                      (__bridge id)kSecValueData       : [password dataUsingEncoding:NSUTF8StringEncoding],
-                                      (__bridge id)kSecAttrAccessGroup : accessGroup,
-                                      };
+    NSMutableDictionary *query = [@{
+                                    (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
+                                    (__bridge id)kSecClass      : (__bridge id)kSecClassGenericPassword,
+                                    } mutableCopy];
     
-    NSDictionary * resultDicionary = [OWGenericKeychainItem addItemAndFetchResultWithQueryDictionary:queryDictionary error:nil];
+    if (service)     query[ (__bridge id)kSecAttrService] = service;
+    if (account)     query[ (__bridge id)kSecAttrAccount] = account;
+    if (accessGroup) query[ (__bridge id)kSecAttrAccessGroup] = accessGroup;
+    if (password)    query[ (__bridge id)kSecValueData] = [password dataUsingEncoding:NSUTF8StringEncoding];
+    
+    NSDictionary * resultDicionary = [OWGenericKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDicionary) {
         return nil;
@@ -429,15 +431,15 @@
 @implementation OWInternetKeychainItem
 
 
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path
++ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account
 {
-    return [OWInternetKeychainItem internetKeychainItemWithServer:(NSString *)server account:account protocol:protocol port:port path:path authenticationType:NULL securityDomain:nil accessGroup:nil];
+    return [OWInternetKeychainItem internetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account authenticationType:NULL securityDomain:nil accessGroup:nil];
 }
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
++ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
 {
-    return [OWInternetKeychainItem internetKeychainItemWithServer:(NSString *)server account:account protocol:protocol port:port path:path authenticationType:authenticationType securityDomain:securityDomain accessGroup:nil];
+    return [OWInternetKeychainItem internetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account authenticationType:authenticationType securityDomain:securityDomain accessGroup:nil];
 }
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0)
++ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup
 {
     NSMutableDictionary *query = [@{
                                     (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
@@ -463,15 +465,15 @@
 }
 
 
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password
 {
-    return [OWInternetKeychainItem addInternetKeychainItemWithServer:(NSString *)server account:account protocol:protocol port:port path:path password:(NSString *)password authenticationType:NULL securityDomain:nil accessGroup:nil];
+    return [OWInternetKeychainItem addInternetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account password:(NSString *)password authenticationType:NULL securityDomain:nil accessGroup:nil];
 }
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
 {
-    return [OWInternetKeychainItem addInternetKeychainItemWithServer:(NSString *)server account:account protocol:protocol port:port path:path password:(NSString *)password authenticationType:authenticationType securityDomain:securityDomain accessGroup:nil];
+    return [OWInternetKeychainItem addInternetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account password:(NSString *)password authenticationType:authenticationType securityDomain:securityDomain accessGroup:nil];
 }
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server account:(NSString *)account protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup __OSX_AVAILABLE_STARTING(__MAC_10_9, __IPHONE_4_0)
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup
 {
     NSMutableDictionary *query = [@{
                                     (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
