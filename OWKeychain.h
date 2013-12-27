@@ -31,11 +31,11 @@
 @property (readonly) BOOL isExist;
 
 @property (readonly)  CFTypeRef secClass;
-@property (readonly)  NSString  *secAccessGroup;
 @property (readonly)  SecKeychainItemRef secItemRef;
 @property (readonly)  NSData    *secPersistentRef;
 
 @property (readwrite) CFTypeRef secAccessible;
+@property (readwrite) NSString  *secAccessGroup;
 
 // make changes, then save to keychain
 - (NSError *)commit;
@@ -51,10 +51,10 @@
 
 @interface OWBasePasswordKeychainItem : OWKeychainItem
 
-@property (readonly) NSString  *secAccount;
 @property (readonly) NSDate    *secCreationDate;
 @property (readonly) NSDate    *secModificationDate;
 
+@property (readwrite) NSString *secAccount;
 @property (readwrite) NSString *secDescription;
 @property (readwrite) NSString *secComment;
 @property (readwrite) NSNumber *secCreator;
@@ -70,7 +70,7 @@
 
 @interface OWGenericKeychainItem : OWBasePasswordKeychainItem
 
-@property (readonly) NSString  *secService;
+@property (readwrite) NSString *secService;
 @property (readwrite) NSString *secGeneric;
 
 + (instancetype)genericKeychainItemWithService:(NSString *)service account:(NSString *)account;
@@ -83,17 +83,17 @@
 
 @interface OWInternetKeychainItem : OWBasePasswordKeychainItem
 
-@property (readonly) CFTypeRef  secProtocol;
-@property (readonly) NSUInteger secPort;
-@property (readonly) NSString   *secPath;
-@property (readonly) CFTypeRef  authenticationType;
-@property (readonly) NSString   *secSecurityDomain;
+@property (readwrite) CFTypeRef  secProtocol;
+@property (readwrite) NSUInteger secPort;
+@property (readwrite) NSString   *secPath;
+@property (readwrite) CFTypeRef  authenticationType;
+@property (readwrite) NSString   *secSecurityDomain;
 
 + (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account;
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup;
++ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account accessGroup:(NSString *)accessGroup;
++ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account accessGroup:(NSString *)accessGroup authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
 
 + (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password;
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup;
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password accessGroup:(NSString *)accessGroup;
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password accessGroup:(NSString *)accessGroup authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain;
 @end

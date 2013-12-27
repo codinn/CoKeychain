@@ -50,11 +50,6 @@
 
 #pragma mark Sec Readonly Attributes / Return Values
 
-- (NSString *)secAccessGroup
-{
-    return self.resultDictionary[(__bridge id)kSecAttrAccessGroup];
-}
-
 - (SecKeychainItemRef)secItemRef
 {
     return (__bridge SecKeychainItemRef)(self.resultDictionary[(__bridge id)kSecValueRef]);
@@ -79,6 +74,15 @@
 - (void)setSecAccessible:(CFTypeRef)accessible
 {
     self.updateDictionary[(__bridge id)kSecAttrAccessible] = (__bridge id)accessible;
+}
+
+- (NSString *)secAccessGroup
+{
+    return self.resultDictionary[(__bridge id)kSecAttrAccessGroup];
+}
+- (void)setSecAccessGroup:(NSString *)group
+{
+    self.updateDictionary[(__bridge id)kSecAttrAccessGroup] = group;
 }
 
 #pragma mark Item Existence
@@ -143,8 +147,8 @@
         error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:nil];
     }
     
-    // todo: refetch
-    [self.updateDictionary removeAllObjects];
+    // reset update dictionary to make password swept from memory
+    [self reset];
     return error;
 }
 
@@ -184,11 +188,6 @@
 
 #pragma mark Sec Readonly Attributes / Return Values
 
-- (NSString *)secAccount
-{
-    return (self.resultDictionary[(__bridge id)kSecAttrAccount]);
-}
-
 - (NSDate *)secCreationDate
 {
     return self.resultDictionary[(__bridge id)kSecAttrCreationDate];
@@ -200,6 +199,15 @@
 }
 
 #pragma mark Sec Readwrite Attributes / Return Values
+
+- (NSString *)secAccount
+{
+    return (self.resultDictionary[(__bridge id)kSecAttrAccount]);
+}
+- (void)setSecAccount:(NSString *)account
+{
+    self.updateDictionary[(__bridge id)kSecAttrAccount] = account;
+}
 
 - (NSString *)secDescription
 {
@@ -400,14 +408,16 @@
     return [[OWGenericKeychainItem alloc] initWithResultDictionary:resultDicionary];
 }
 
-#pragma mark Sec Readonly Attributes / Return Values
+#pragma mark Sec Readwrite Attributes / Return Values
 
 - (NSString *)secService
 {
-   return self.resultDictionary[(__bridge id)kSecAttrService];
+    return self.resultDictionary[(__bridge id)kSecAttrService];
 }
-
-#pragma mark Sec Readwrite Attributes / Return Values
+- (void)setSecService:(NSString *)service
+{
+    self.updateDictionary[(__bridge id)kSecAttrService] = service;
+}
 
 - (NSString *)secGeneric
 {
@@ -433,13 +443,13 @@
 
 + (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account
 {
-    return [OWInternetKeychainItem internetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account authenticationType:NULL securityDomain:nil accessGroup:nil];
+    return [OWInternetKeychainItem internetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account accessGroup:nil authenticationType:NULL securityDomain:nil];
 }
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
++ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account accessGroup:(NSString *)accessGroup
 {
-    return [OWInternetKeychainItem internetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account authenticationType:authenticationType securityDomain:securityDomain accessGroup:nil];
+    return [OWInternetKeychainItem internetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account accessGroup:accessGroup authenticationType:NULL securityDomain:nil];
 }
-+ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup
++ (instancetype)internetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account accessGroup:(NSString *)accessGroup authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
 {
     NSMutableDictionary *query = [@{
                                     (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
@@ -467,13 +477,13 @@
 
 + (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password
 {
-    return [OWInternetKeychainItem addInternetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account password:(NSString *)password authenticationType:NULL securityDomain:nil accessGroup:nil];
+    return [OWInternetKeychainItem addInternetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account password:(NSString *)password accessGroup:nil authenticationType:NULL securityDomain:nil];
 }
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password accessGroup:(NSString *)accessGroup
 {
-    return [OWInternetKeychainItem addInternetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account password:(NSString *)password authenticationType:authenticationType securityDomain:securityDomain accessGroup:nil];
+    return [OWInternetKeychainItem addInternetKeychainItemWithServer:(NSString *)server protocol:protocol port:port path:path account:account password:(NSString *)password accessGroup:accessGroup authenticationType:NULL securityDomain:nil];
 }
-+ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain accessGroup:(NSString *)accessGroup
++ (instancetype)addInternetKeychainItemWithServer:(NSString *)server protocol:(CFTypeRef)protocol port:(NSUInteger)port path:(NSString *)path account:(NSString *)account password:(NSString *)password accessGroup:(NSString *)accessGroup authenticationType:(CFTypeRef)authenticationType securityDomain:(NSString *)securityDomain
 {
     NSMutableDictionary *query = [@{
                                     (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
@@ -505,25 +515,45 @@
 {
     return (__bridge CFTypeRef)((self.resultDictionary[(__bridge id)kSecAttrProtocol]));
 }
+- (void)setSecProtocol:(CFTypeRef)protocol
+{
+    self.updateDictionary[(__bridge id)kSecAttrProtocol] = (__bridge id)protocol;
+}
 
 - (NSUInteger)secPort
 {
     return [self.resultDictionary[(__bridge id)kSecAttrPort] integerValue];
+}
+- (void)setSecPort:(NSUInteger)port
+{
+    self.updateDictionary[(__bridge id)kSecAttrPort] = @(port);
 }
 
 - (NSString *)secPath
 {
     return self.resultDictionary[(__bridge id)kSecAttrService];
 }
+- (void)setSecPath:(NSString *)path
+{
+    self.updateDictionary[(__bridge id)kSecAttrPath] = path;
+}
 
 - (CFTypeRef)secAuthenticationType
 {
     return (__bridge CFTypeRef)(self.resultDictionary[(__bridge id)kSecAttrAuthenticationType]);
 }
+- (void)setSecAuthenticationType:(CFTypeRef)authenticationType
+{
+    self.updateDictionary[(__bridge id)kSecAttrAuthenticationType] = (__bridge id)authenticationType;
+}
 
 - (NSString *)secSecurityDomain
 {
     return self.resultDictionary[(__bridge id)kSecAttrSecurityDomain];
+}
+- (void)setSecSecurityDomain:(NSString *)securityDomain
+{
+    self.updateDictionary[(__bridge id)kSecAttrSecurityDomain] = securityDomain;
 }
 
 @end
