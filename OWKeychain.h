@@ -37,6 +37,9 @@
 @property (readwrite) CFTypeRef secAccessible;
 @property (readwrite) NSString  *secAccessGroup;
 
++ (instancetype)keychainItemWithSecItemRef:(SecKeychainItemRef)secItemRef;
++ (instancetype)keychainItemWithSecPersistentRef:(NSData *)secPersistentRef;
+
 // make changes, then save to keychain
 - (NSError *)commit;
 

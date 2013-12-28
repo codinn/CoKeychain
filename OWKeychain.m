@@ -38,11 +38,59 @@
 
 @implementation OWKeychainItem
 
-- (instancetype)initWithResultDictionary:resultDicionary
++ (instancetype)keychainItemWithSecItemRef:(SecKeychainItemRef)secItemRef
+{
+    NSDictionary *query = @{
+                            (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
+                            (__bridge id)kSecValueRef   : (__bridge id)secItemRef,
+                            } ;
+    
+    NSDictionary * resultDictionary = [OWKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    
+    if (!resultDictionary) {
+        return nil;
+    }
+    
+    return [OWKeychainItem keychainItemFromResultDictionary:resultDictionary];
+}
++ (instancetype)keychainItemWithSecPersistentRef:(NSData *)secPersistentRef
+{
+    NSDictionary *query = @{
+                            (__bridge id)kSecMatchLimit         : (__bridge id)kSecMatchLimitOne,
+                            (__bridge id)kSecValuePersistentRef : secPersistentRef,
+                            } ;
+    
+    NSDictionary * resultDictionary = [OWKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    
+    if (!resultDictionary) {
+        return nil;
+    }
+    
+    return [OWKeychainItem keychainItemFromResultDictionary:resultDictionary];
+}
++ (instancetype)keychainItemFromResultDictionary:resultDictionary
+{
+    Class keychainItemClass = nil;
+    CFTypeRef secClass = (__bridge CFTypeRef)(resultDictionary[(__bridge id)kSecClass]);
+    
+    if (secClass==kSecClassGenericPassword) {
+        keychainItemClass = [OWGenericKeychainItem class];
+    } else if (secClass==kSecClassInternetPassword) {
+        keychainItemClass = [OWInternetKeychainItem class];
+    }
+    
+    if (keychainItemClass) {
+        return [[keychainItemClass alloc] initWithResultDictionary:resultDictionary];
+    }
+    
+    return nil;
+}
+
+- (instancetype)initWithResultDictionary:resultDictionary
 {
     self = [super init];
     if (self) {
-        self.resultDictionary = resultDicionary;
+        self.resultDictionary = resultDictionary;
         _updateDictionary = [@{} mutableCopy];
     }
     return self;
@@ -50,6 +98,10 @@
 
 #pragma mark Sec Readonly Attributes / Return Values
 
+- (CFTypeRef)secClass
+{
+    return (__bridge CFTypeRef)(self.resultDictionary[(__bridge id)kSecClass]);
+}
 - (SecKeychainItemRef)secItemRef
 {
     return (__bridge SecKeychainItemRef)(self.resultDictionary[(__bridge id)kSecValueRef]);
@@ -374,13 +426,13 @@
     if (account)     query[ (__bridge id)kSecAttrAccount] = account;
     if (accessGroup) query[ (__bridge id)kSecAttrAccessGroup] = accessGroup;
     
-    NSDictionary * resultDicionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
-    if (!resultDicionary) {
+    if (!resultDictionary) {
         return nil;
     }
     
-    return [[OWGenericKeychainItem alloc] initWithResultDictionary:resultDicionary];
+    return [[OWGenericKeychainItem alloc] initWithResultDictionary:resultDictionary];
 }
 
 + (instancetype)addGenericKeychainItemWithService:(NSString *)service account:(NSString *)account password:(NSString *)password
@@ -399,13 +451,13 @@
     if (accessGroup) query[ (__bridge id)kSecAttrAccessGroup] = accessGroup;
     if (password)    query[ (__bridge id)kSecValueData] = [password dataUsingEncoding:NSUTF8StringEncoding];
     
-    NSDictionary * resultDicionary = [OWGenericKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [OWGenericKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
     
-    if (!resultDicionary) {
+    if (!resultDictionary) {
         return nil;
     }
     
-    return [[OWGenericKeychainItem alloc] initWithResultDictionary:resultDicionary];
+    return [[OWGenericKeychainItem alloc] initWithResultDictionary:resultDictionary];
 }
 
 #pragma mark Sec Readwrite Attributes / Return Values
@@ -465,13 +517,13 @@
     if (securityDomain)     query[ (__bridge id)kSecAttrSecurityDomain] = securityDomain;
     if (authenticationType) query[ (__bridge id)kSecAttrAuthenticationType] = (__bridge id)(authenticationType);
     
-    NSDictionary * resultDicionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
-    if (!resultDicionary) {
+    if (!resultDictionary) {
         return nil;
     }
     
-    return [[OWInternetKeychainItem alloc] initWithResultDictionary:resultDicionary];
+    return [[OWInternetKeychainItem alloc] initWithResultDictionary:resultDictionary];
 }
 
 
@@ -500,13 +552,13 @@
     if (securityDomain)     query[ (__bridge id)kSecAttrSecurityDomain] = securityDomain;
     if (authenticationType) query[ (__bridge id)kSecAttrAuthenticationType] = (__bridge id)(authenticationType);
     
-    NSDictionary * resultDicionary = [OWInternetKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [OWInternetKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
     
-    if (!resultDicionary) {
+    if (!resultDictionary) {
         return nil;
     }
     
-    return [[OWInternetKeychainItem alloc] initWithResultDictionary:resultDicionary];
+    return [[OWInternetKeychainItem alloc] initWithResultDictionary:resultDictionary];
 }
 
 #pragma mark Sec Readonly Attributes / Return Values
