@@ -217,12 +217,19 @@
 - (NSError *)delete
 {
     NSError *error = nil;
+    
+    // Items sometimes aren't deleted on Mac OS
+    // see https://github.com/soffes/sskeychain/pull/15 for more info
+#if TARGET_OS_IPHONE
     NSDictionary *queryDictionary = @{
                                       (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
                                       (__bridge id)kSecValueRef   : (__bridge id)self.secItemRef
                                       };
     
     OSStatus status = SecItemDelete((__bridge CFDictionaryRef)(queryDictionary));
+#else
+    OSStatus status = SecKeychainItemDelete(self.secItemRef);
+#endif
     
     if (status != errSecSuccess && error != NULL) {
         self.resultDictionary = nil;
