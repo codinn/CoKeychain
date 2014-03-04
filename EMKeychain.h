@@ -33,7 +33,9 @@
 @property (readonly) SecKeychainItemRef coreKeychainItem;
 @property NSString *password;
 @property (readonly) NSString *username;
-@property (nonatomic) NSString *label;
+@property (readwrite) NSString *label;
+@property (readwrite) NSString *comment;
+@property (readwrite) NSString *description;
 
 - (void)remove;
 

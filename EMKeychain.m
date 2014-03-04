@@ -24,7 +24,11 @@
 
 #import "EMKeychain.h"
 
-@interface EMKeychainItem ()
+@interface EMKeychainItem () {
+    NSString *_label;
+    NSString *_comment;
+    NSString *_description;
+}
 - (BOOL)modifyAttributeWithTag:(SecItemAttr)attributeTag toBeString:(NSString *)newStringValue;
 
 @property (readwrite) SecKeychainItemRef coreKeychainItem;
@@ -58,9 +62,9 @@
     OSStatus returnStatus = SecKeychainItemCopyAttributesAndData(self.coreKeychainItem, NULL, NULL, NULL, &passwordLength, (void **)&password);
     
 	if (returnStatus != noErr) {
-        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
-		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
-        CFRelease(errDesc);
+//        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
+//		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
+//        CFRelease(errDesc);
 		return nil;
 	}
 	
@@ -85,15 +89,41 @@
 	OSStatus returnStatus = SecKeychainItemModifyAttributesAndData(self.coreKeychainItem, NULL, (UInt32)strlen(newPassword), (void *)newPassword);
     
 	if (returnStatus != noErr) {
-        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
-		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
-        CFRelease(errDesc);
+//        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
+//		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
+//        CFRelease(errDesc);
 	}
 }
-- (void)setLabel:(NSString *)newLabel {
-    self.label = newLabel;
+
+- (NSString *)label
+{
+    return _label;
+}
+- (void)setLabel:(NSString *)newLabel
+{
+    _label = newLabel;
     [self modifyAttributeWithTag:kSecLabelItemAttr toBeString:newLabel];
 }
+
+- (NSString *)comment {
+    return _comment;
+}
+- (void)setComment:(NSString *)newComment
+{
+    _comment = newComment;
+    [self modifyAttributeWithTag:kSecCommentItemAttr toBeString:newComment];
+}
+
+- (NSString *)description
+{
+    return _description;
+}
+- (void)setDescription:(NSString *)newDescription
+{
+    _description = newDescription;
+    [self modifyAttributeWithTag:kSecDescriptionItemAttr toBeString:newDescription];
+}
+
 - (void)remove {
   	SecKeychainItemDelete(self.coreKeychainItem);
 }
@@ -138,9 +168,9 @@
 	OSStatus returnStatus = SecKeychainFindGenericPassword(NULL, (UInt32)strlen(serviceName), serviceName, (UInt32)strlen(username), username, NULL, NULL, &item);
 	
 	if (returnStatus != noErr || !item) {
-        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
-		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
-        CFRelease(errDesc);
+//        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
+//		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
+//        CFRelease(errDesc);
 		return nil;
 	}
 	
@@ -159,9 +189,9 @@
 	OSStatus returnStatus = SecKeychainAddGenericPassword(NULL, (UInt32)strlen(serviceName), serviceName, (UInt32)strlen(username), username, (UInt32)strlen(password), (void *)password, &item);
 	
 	if (returnStatus != noErr || !item) {
-        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
-		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
-        CFRelease(errDesc);
+//        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
+//		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
+//        CFRelease(errDesc);
 		return nil;
 	}
 	return [[EMGenericKeychainItem alloc] initWithCoreKeychainItem:item serviceName:serviceNameString username:usernameString];
@@ -204,9 +234,9 @@
 	OSStatus returnStatus = SecKeychainFindInternetPassword(NULL, (UInt32)strlen(server), server, 0, NULL, (UInt32)strlen(username), username, (UInt32)strlen(path), path, port, protocol, kSecAuthenticationTypeDefault, NULL, NULL, &item);
 	
 	if (returnStatus != noErr || !item) {
-        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
-		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
-        CFRelease(errDesc);
+//        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
+//		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
+//        CFRelease(errDesc);
 		return nil;
 	}
 	
@@ -229,9 +259,9 @@
 	OSStatus returnStatus = SecKeychainAddInternetPassword(NULL, (UInt32)strlen(server), server, 0, NULL, (UInt32)strlen(username), username, (UInt32)strlen(path), path, port, protocol, kSecAuthenticationTypeDefault, (UInt32)strlen(password), (void *)password, &item);
 	
 	if (returnStatus != noErr || !item) {
-        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
-		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
-        CFRelease(errDesc);
+//        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
+//		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
+//        CFRelease(errDesc);
 		return nil;
 	}
     return [[EMInternetKeychainItem alloc] initWithCoreKeychainItem:item server:serverString username:usernameString path:pathString port:port protocol:protocol];
