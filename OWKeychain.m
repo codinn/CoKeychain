@@ -433,7 +433,7 @@
     if (account)     query[ (__bridge id)kSecAttrAccount] = account;
     if (accessGroup) query[ (__bridge id)kSecAttrAccessGroup] = accessGroup;
     
-    NSDictionary * resultDictionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [OWKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
@@ -458,7 +458,7 @@
     if (accessGroup) query[ (__bridge id)kSecAttrAccessGroup] = accessGroup;
     if (password)    query[ (__bridge id)kSecValueData] = [password dataUsingEncoding:NSUTF8StringEncoding];
     
-    NSDictionary * resultDictionary = [OWGenericKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [OWKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
@@ -524,7 +524,7 @@
     if (securityDomain)     query[ (__bridge id)kSecAttrSecurityDomain] = securityDomain;
     if (authenticationType) query[ (__bridge id)kSecAttrAuthenticationType] = (__bridge id)(authenticationType);
     
-    NSDictionary * resultDictionary = [OWInternetKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [OWKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
@@ -559,7 +559,7 @@
     if (securityDomain)     query[ (__bridge id)kSecAttrSecurityDomain] = securityDomain;
     if (authenticationType) query[ (__bridge id)kSecAttrAuthenticationType] = (__bridge id)(authenticationType);
     
-    NSDictionary * resultDictionary = [OWInternetKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [OWKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
