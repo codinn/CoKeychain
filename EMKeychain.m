@@ -77,7 +77,7 @@
 	passwordStore[passwordLength] = '\0';
 	NSString *passwordString = [NSString stringWithUTF8String:passwordStore];
     
-	SecKeychainItemFreeContent(NULL, password);
+	SecKeychainItemFreeAttributesAndData(NULL, password);
     return passwordString;
 }
 
