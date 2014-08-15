@@ -24,6 +24,44 @@
 
 #import "EMKeychain.h"
 
+
+
+// stolen from: http://opensource.apple.com/source/Security/Security-176/Keychain/SecKeychainAddIToolsPassword.c
+static SecAccessRef createAccess(NSString *accessLabel, NSArray *trustedPaths)
+{
+	OSStatus err;
+	SecAccessRef access=nil;
+    SecTrustedApplicationRef myself = nil;
+    SecTrustedApplicationRef someOther = nil;
+	
+	// use default access ("confirm access")
+    // make an exception list of applications you want to trust,
+    // which are allowed to access the item without requiring user confirmation
+    
+	CFMutableArrayRef trustedApplications = CFArrayCreateMutable(kCFAllocatorDefault,0,&kCFTypeArrayCallBacks);
+    
+    err = SecTrustedApplicationCreateFromPath(NULL, &myself);
+    
+    if (!err) {
+        CFArrayAppendValue(trustedApplications,myself);
+    }
+    
+    for (NSUInteger ix=0; ix<trustedPaths.count; ix++) {
+        err = SecTrustedApplicationCreateFromPath([trustedPaths[ix] cStringUsingEncoding:NSUTF8StringEncoding], &someOther);
+        
+        if (!err) {
+            CFArrayAppendValue(trustedApplications,someOther);
+        }
+    }
+    
+	err = SecAccessCreate((__bridge CFStringRef)(accessLabel), (CFArrayRef)trustedApplications, &access);
+    if (err)
+        return nil;
+    
+	return access;
+}
+
+
 @interface EMKeychainItem () {
     NSString *_label;
     NSString *_comment;
@@ -146,6 +184,7 @@
 	OSStatus returnStatus = SecKeychainItemModifyAttributesAndData(self.coreKeychainItem, &list, 0, NULL);
 	return (returnStatus == noErr);
 }
+
 @end
 
 @interface EMGenericKeychainItem()
@@ -157,7 +196,8 @@
 
 @implementation EMGenericKeychainItem
 
-+ (EMGenericKeychainItem *)genericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString {
++ (EMGenericKeychainItem *)genericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString
+{
 	if (!usernameString || [usernameString length] == 0)
 		return nil;
 	
@@ -177,17 +217,36 @@
 	return [[EMGenericKeychainItem alloc] initWithCoreKeychainItem:item serviceName:serviceNameString username:usernameString];
 }
 
-+ (EMGenericKeychainItem *)addGenericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString password:(NSString *)passwordString {
++ (EMGenericKeychainItem *)addGenericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString password:(NSString *)passwordString trustedPaths:(NSArray *)trustedPaths
+{
 	if (!usernameString || [usernameString length] == 0 || !serviceNameString || [serviceNameString length] == 0)
 		return nil;
 	
 	const char *serviceName = [serviceNameString UTF8String];
 	const char *username = [usernameString UTF8String];
 	const char *password = [passwordString UTF8String];
-	
+    
 	SecKeychainItemRef item = nil;
-	OSStatus returnStatus = SecKeychainAddGenericPassword(NULL, (UInt32)strlen(serviceName), serviceName, (UInt32)strlen(username), username, (UInt32)strlen(password), (void *)password, &item);
-	
+    
+    // create initial access control settings for the item
+    SecAccessRef access = createAccess(serviceNameString, trustedPaths);
+    
+    // set up attribute vector (each attribute consists of {tag, length, pointer})
+	SecKeychainAttribute attrs[] =
+    {
+		{ kSecAccountItemAttr, (UInt32)strlen(username), (char *)username },
+		{ kSecServiceItemAttr, (UInt32)strlen(serviceName), (char *)serviceName }
+	};
+	SecKeychainAttributeList attributes = { sizeof(attrs) / sizeof(attrs[0]), attrs };
+    
+    OSStatus returnStatus = SecKeychainItemCreateFromContent(kSecGenericPasswordItemClass,
+                                           &attributes,
+                                           (UInt32)strlen(password),
+                                           (const char *)password,
+                                           NULL,
+                                           access,
+                                           &item);
+		
 	if (returnStatus != noErr || !item) {
 //        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
 //		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), errDesc);
@@ -219,7 +278,8 @@
 
 @implementation EMInternetKeychainItem
 
-+ (EMInternetKeychainItem *)internetKeychainItemForServer:(NSString *)serverString withUsername:(NSString *)usernameString path:(NSString *)pathString port:(UInt16)port protocol:(SecProtocolType)protocol {
++ (EMInternetKeychainItem *)internetKeychainItemForServer:(NSString *)serverString withUsername:(NSString *)usernameString path:(NSString *)pathString port:(UInt16)port protocol:(SecProtocolType)protocol
+{
 	if (!usernameString || [usernameString length] == 0 || !serverString || [serverString length] == 0)
 		return nil;
 	
@@ -243,7 +303,8 @@
 	return [[EMInternetKeychainItem alloc] initWithCoreKeychainItem:item server:serverString username:usernameString path:pathString port:port protocol:protocol];
 }
 
-+ (EMInternetKeychainItem *)addInternetKeychainItemForServer:(NSString *)serverString withUsername:(NSString *)usernameString password:(NSString *)passwordString path:(NSString *)pathString port:(UInt16)port protocol:(SecProtocolType)protocol {
++ (EMInternetKeychainItem *)addInternetKeychainItemForServer:(NSString *)serverString withUsername:(NSString *)usernameString password:(NSString *)passwordString path:(NSString *)pathString port:(UInt16)port protocol:(SecProtocolType)protocol trustedPaths:(NSArray *)trustedPaths
+{
 	if (!usernameString || [usernameString length] == 0 || !serverString || [serverString length] == 0 || !passwordString || [passwordString length] == 0)
 		return nil;
 	
@@ -252,11 +313,37 @@
 	const char *password = [passwordString UTF8String];
 	const char *path = [pathString UTF8String];
 	
-	if (!pathString || [pathString length] == 0)
+	if (!pathString || [pathString length] == 0) {
 		path = "";
-	
+    }
+    
+    NSString *labelString = [NSString stringWithFormat:@"%@@%@:%d", usernameString, serverString, port];
+    
 	SecKeychainItemRef item = nil;
-	OSStatus returnStatus = SecKeychainAddInternetPassword(NULL, (UInt32)strlen(server), server, 0, NULL, (UInt32)strlen(username), username, (UInt32)strlen(path), path, port, protocol, kSecAuthenticationTypeDefault, (UInt32)strlen(password), (void *)password, &item);
+    
+    // create initial access control settings for the item
+    SecAccessRef access = createAccess(labelString, trustedPaths);
+    SecAuthenticationType authenticationType = kSecAuthenticationTypeDefault;
+    
+    // set up attribute vector (each attribute consists of {tag, length, pointer})
+	SecKeychainAttribute attrs[] =
+    {
+		{ kSecServerItemAttr, server ? (UInt32)strlen(server) : 0, (char *)server },
+		{ kSecAccountItemAttr, username ? (UInt32)strlen(username) : 0, (char *)username },
+		{ kSecPathItemAttr, path ? (UInt32)strlen(path) : 0, (char *)path },
+        { kSecPortItemAttr, sizeof(UInt16), (UInt16 *)&port },
+        { kSecProtocolItemAttr, sizeof(SecProtocolType), (SecProtocolType *)&protocol },
+        { kSecAuthenticationTypeItemAttr, sizeof(SecAuthenticationType), (SecAuthenticationType *)&authenticationType },
+	};
+	SecKeychainAttributeList attributes = { sizeof(attrs) / sizeof(attrs[0]), attrs };
+    
+    OSStatus returnStatus = SecKeychainItemCreateFromContent(kSecInternetPasswordItemClass,
+                                                             &attributes,
+                                                             (UInt32)strlen(password),
+                                                             (const char *)password,
+                                                             NULL,
+                                                             access,
+                                                             &item);
 	
 	if (returnStatus != noErr || !item) {
 //        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
