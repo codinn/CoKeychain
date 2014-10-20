@@ -47,7 +47,7 @@
 
 + (instancetype)genericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString;
 
-+ (instancetype)addGenericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString password:(NSString *)passwordString trustedPaths:(NSArray *)trustedPaths;
++ (instancetype)addGenericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString password:(NSString *)passwordString;
 @end
 
 @interface EMInternetKeychainItem : EMKeychainItem
@@ -59,5 +59,5 @@
 
 + (instancetype)internetKeychainItemForServer:(NSString *)serverString withUsername:(NSString *)usernameString path:(NSString *)pathString port:(UInt16)port protocol:(SecProtocolType)protocol;
 
-+ (instancetype)addInternetKeychainItemForServer:(NSString *)serverString withUsername:(NSString *)usernameString password:(NSString *)passwordString path:(NSString *)pathString port:(UInt16)port protocol:(SecProtocolType)protocol trustedPaths:(NSArray *)trustedPaths;
++ (instancetype)addInternetKeychainItemForServer:(NSString *)serverString withUsername:(NSString *)usernameString password:(NSString *)passwordString path:(NSString *)pathString port:(UInt16)port protocol:(SecProtocolType)protocol;
 @end
