@@ -1,4 +1,5 @@
-/*Copyright (c) 2013 Codinn. <yang@codinn.com>
+/*
+ Copyright (c) 2013 Codinn. <yang@codinn.com>
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -22,11 +23,11 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#import "OWKeychain.h"
+#import "CoKeychain.h"
 
-#pragma mark OWKeychainItem
+#pragma mark CoKeychainItem
 
-@interface OWKeychainItem()
+@interface CoKeychainItem()
 
 @property NSMutableDictionary   *attributes;
 @property NSDictionary          *returnAttributes;
@@ -36,7 +37,7 @@
 
 @end
 
-@implementation OWKeychainItem
+@implementation CoKeychainItem
 
 + (instancetype)keychainItemWithSecItemRef:(SecKeychainItemRef)secItemRef
 {
@@ -45,13 +46,13 @@
                             (__bridge id)kSecValueRef   : (__bridge id)secItemRef,
                             } ;
     
-    NSDictionary * resultDictionary = [OWKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [CoKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
     }
     
-    return [OWKeychainItem keychainItemFromResultDictionary:resultDictionary];
+    return [CoKeychainItem keychainItemFromResultDictionary:resultDictionary];
 }
 + (instancetype)keychainItemWithSecPersistentRef:(NSData *)secPersistentRef
 {
@@ -60,13 +61,13 @@
                             (__bridge id)kSecValuePersistentRef : secPersistentRef,
                             } ;
     
-    NSDictionary * resultDictionary = [OWKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [CoKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
     }
     
-    return [OWKeychainItem keychainItemFromResultDictionary:resultDictionary];
+    return [CoKeychainItem keychainItemFromResultDictionary:resultDictionary];
 }
 + (instancetype)keychainItemFromResultDictionary:resultDictionary
 {
@@ -433,7 +434,7 @@
     if (account)     query[ (__bridge id)kSecAttrAccount] = account;
     if (accessGroup) query[ (__bridge id)kSecAttrAccessGroup] = accessGroup;
     
-    NSDictionary * resultDictionary = [OWKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [CoKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
@@ -458,7 +459,7 @@
     if (accessGroup) query[ (__bridge id)kSecAttrAccessGroup] = accessGroup;
     if (password)    query[ (__bridge id)kSecValueData] = [password dataUsingEncoding:NSUTF8StringEncoding];
     
-    NSDictionary * resultDictionary = [OWKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [CoKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
@@ -524,7 +525,7 @@
     if (securityDomain)     query[ (__bridge id)kSecAttrSecurityDomain] = securityDomain;
     if (authenticationType) query[ (__bridge id)kSecAttrAuthenticationType] = (__bridge id)(authenticationType);
     
-    NSDictionary * resultDictionary = [OWKeychainItem fetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [CoKeychainItem fetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;
@@ -559,7 +560,7 @@
     if (securityDomain)     query[ (__bridge id)kSecAttrSecurityDomain] = securityDomain;
     if (authenticationType) query[ (__bridge id)kSecAttrAuthenticationType] = (__bridge id)(authenticationType);
     
-    NSDictionary * resultDictionary = [OWKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
+    NSDictionary * resultDictionary = [CoKeychainItem addItemAndFetchResultWithQueryDictionary:query error:nil];
     
     if (!resultDictionary) {
         return nil;

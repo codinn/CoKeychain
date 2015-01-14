@@ -1,4 +1,5 @@
-/*Copyright (c) 2013 Codinn. <yang@codinn.com>
+/*
+ Copyright (c) 2013 Codinn. <yang@codinn.com>
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -26,7 +27,7 @@
 #import <Cocoa/Cocoa.h>
 #import <Security/Security.h>
 
-@interface OWKeychainItem : NSObject
+@interface CoKeychainItem : NSObject
 
 @property (readonly) BOOL isExist;
 
@@ -52,7 +53,7 @@
 
 @end
 
-@interface OWBasePasswordKeychainItem : OWKeychainItem
+@interface OWBasePasswordKeychainItem : CoKeychainItem
 
 @property (readonly) NSDate    *secCreationDate;
 @property (readonly) NSDate    *secModificationDate;
