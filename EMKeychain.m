@@ -196,6 +196,12 @@ static SecAccessRef createAccess(NSString *accessLabel, NSArray *trustedPaths)
 
 @implementation EMGenericKeychainItem
 
+- (void)changeServiceTo:(NSString *)newService
+{
+    self.service = newService;
+    [self modifyAttributeWithTag:kSecServiceItemAttr toBeString:newService];
+}
+
 + (EMGenericKeychainItem *)genericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString
 {
 	if (!usernameString || [usernameString length] == 0)

@@ -48,6 +48,9 @@
 + (instancetype)genericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString;
 
 + (instancetype)addGenericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString password:(NSString *)passwordString;
+
+- (void)changeServiceTo:(NSString *)newService;
+
 @end
 
 @interface EMInternetKeychainItem : EMKeychainItem
